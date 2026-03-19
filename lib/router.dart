@@ -12,14 +12,19 @@ import 'features/home/home_page.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/shell/app_shell.dart';
 import 'features/welcome/welcome_page.dart';
+import 'features/splash/splash_gate_page.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _shellKey = GlobalKey<NavigatorState>();
 
 final router = GoRouter(
   navigatorKey: _rootKey,
-  initialLocation: '/home',
+  initialLocation: '/splash',
   routes: [
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashGatePage(),
+    ),
     GoRoute(
       path: '/welcome',
       builder: (context, state) => const WelcomePage(),
