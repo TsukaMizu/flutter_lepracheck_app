@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'router.dart';
+import 'theme/app_theme.dart';
 
 class LepraCheckApp extends StatelessWidget {
   const LepraCheckApp({super.key});
@@ -7,13 +8,9 @@ class LepraCheckApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Cek Kusta',
+      title: 'LepraCheck',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF1F6FEB),
-        scaffoldBackgroundColor: const Color(0xFFF7F8FA),
-      ),
+      theme: AppTheme.build(),
       routerConfig: router,
     );
   }

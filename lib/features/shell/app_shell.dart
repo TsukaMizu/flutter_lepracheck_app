@@ -5,17 +5,26 @@ class AppShell extends StatelessWidget {
   final Widget child;
   const AppShell({super.key, required this.child});
 
-  static const tabs = <_TabItem>[
+  // Sesuaikan label biar mirip desain: Beranda | Edukasi | (FAB Deteksi) | Riwayat | Profil(About)
+  static const leftTabs = <_TabItem>[
     _TabItem('/home', 'Beranda', Icons.home_outlined),
-    _TabItem('/education', 'Edukasi', Icons.menu_book_outlined),
-    _TabItem('/detect', 'Deteksi', Icons.document_scanner_outlined),
-    _TabItem('/history', 'Riwayat', Icons.history),
+    _TabItem('/education', 'Edukasi', Icons.school_outlined),
+  ];
+
+  static const rightTabs = <_TabItem>[
+    _TabItem('/history', 'Riwayat', Icons.menu_book_outlined),
     _TabItem('/about', 'Tentang', Icons.info_outline),
   ];
 
+  static const fabTab = _TabItem('/detect', 'Deteksi', Icons.document_scanner_outlined);
+
   int _indexFromLocation(String location) {
-    final idx = tabs.indexWhere((t) => location.startsWith(t.location));
-    return idx < 0 ? 0 : idx;
+    if (location.startsWith(leftTabs[0].location)) return 0;
+    if (location.startsWith(leftTabs[1].location)) return 1;
+    if (location.startsWith(fabTab.location)) return 2;
+    if (location.startsWith(rightTabs[0].location)) return 3;
+    if (location.startsWith(rightTabs[1].location)) return 4;
+    return 0;
   }
 
   @override
@@ -23,14 +32,81 @@ class AppShell extends StatelessWidget {
     final location = GoRouterState.of(context).uri.toString();
     final index = _indexFromLocation(location);
 
+    final cs = Theme.of(context).colorScheme;
+    final selectedColor = cs.primary;
+    final unselectedColor = cs.onSurfaceVariant;
+
+    Widget navItem({
+      required _TabItem tab,
+      required bool selected,
+      required VoidCallback onTap,
+    }) {
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(tab.icon, color: selected ? selectedColor : unselectedColor),
+                const SizedBox(height: 4),
+                Text(
+                  tab.label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    color: selected ? selectedColor : unselectedColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) => context.go(tabs[i].location),
-        destinations: [
-          for (final t in tabs) NavigationDestination(icon: Icon(t.icon), label: t.label),
-        ],
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.go(fabTab.location),
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.document_scanner_outlined),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 10,
+        child: Row(
+          children: [
+            navItem(
+              tab: leftTabs[0],
+              selected: index == 0,
+              onTap: () => context.go(leftTabs[0].location),
+            ),
+            navItem(
+              tab: leftTabs[1],
+              selected: index == 1,
+              onTap: () => context.go(leftTabs[1].location),
+            ),
+            const SizedBox(width: 56), // ruang untuk FAB tengah
+            navItem(
+              tab: rightTabs[0],
+              selected: index == 3,
+              onTap: () => context.go(rightTabs[0].location),
+            ),
+            navItem(
+              tab: rightTabs[1],
+              selected: index == 4,
+              onTap: () => context.go(rightTabs[1].location),
+            ),
+          ],
+        ),
       ),
     );
   }
