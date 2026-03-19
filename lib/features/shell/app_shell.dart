@@ -12,7 +12,7 @@ class AppShell extends StatelessWidget {
   ];
 
   static const rightTabs = <_TabItem>[
-    _TabItem('/history', 'Riwayat', Icons.menu_book_outlined),
+    _TabItem('/history', 'Riwayat', Icons.history_outlined),
     _TabItem('/about', 'Tentang', Icons.info_outline),
   ];
 
