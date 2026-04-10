@@ -1,5 +1,5 @@
 class EducationArticle {
-  final String id;
+  final int id;
   final String title;
   final String body;
   final String category;
@@ -19,7 +19,7 @@ class EducationArticle {
 
   factory EducationArticle.fromJson(Map<String, dynamic> json) {
     return EducationArticle(
-      id: json['id'] as String,
+      id: json['id'] as int,
       title: json['title'] as String,
       body: (json['body'] ?? json['content'] ?? '') as String,
       category: (json['category'] ?? 'Umum') as String,
