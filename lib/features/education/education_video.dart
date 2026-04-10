@@ -1,5 +1,5 @@
 class EducationVideo {
-  final String id;
+  final int id;
   final String title;
   final String videoUrl;
   final String thumbnailUrl;
@@ -15,10 +15,11 @@ class EducationVideo {
 
   factory EducationVideo.fromJson(Map<String, dynamic> json) {
     return EducationVideo(
-      id: json['id'] as String,
+      id: json['id'] as int,
       title: json['title'] as String,
       videoUrl: (json['videoUrl'] ?? json['video_url'] ?? '') as String,
-      thumbnailUrl: (json['thumbnailUrl'] ?? json['thumbnail_url'] ?? '') as String,
+      thumbnailUrl:
+          (json['thumbnailUrl'] ?? json['thumbnail_url'] ?? '') as String,
       duration: (json['duration'] ?? '00:00') as String,
     );
   }

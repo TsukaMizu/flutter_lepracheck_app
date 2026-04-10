@@ -6,7 +6,17 @@ import 'education_video.dart';
 import 'education_detail_page.dart';
 
 // ---------------------------------------------------------------------------
-// EducationPage – main entry point (StatefulWidget for tab state)
+// _EducationData – combines articles + videos for a single Future
+// ---------------------------------------------------------------------------
+
+class _EducationData {
+  final List<EducationArticle> articles;
+  final List<EducationVideo> videos;
+  const _EducationData({required this.articles, required this.videos});
+}
+
+// ---------------------------------------------------------------------------
+// EducationPage – main entry point (StatefulWidget for tab + async state)
 // ---------------------------------------------------------------------------
 
 class EducationPage extends StatefulWidget {
@@ -20,20 +30,38 @@ class _EducationPageState extends State<EducationPage> {
   static const _categories = ['Semua', 'Gejala', 'Pengobatan', 'Mitos', 'FAQ'];
   int _selectedCategoryIndex = 0;
 
-  final List<EducationArticle> _articles = EducationRepository.getArticles();
-  final List<EducationVideo> _videos = EducationRepository.getVideos();
+  final _repository = EducationRepository();
+  late Future<_EducationData> _dataFuture;
 
-  List<EducationArticle> get _filteredArticles {
-    final cat = _categories[_selectedCategoryIndex];
-    if (cat == 'Semua') return _articles.where((a) => !a.isFeatured).toList();
-    return _articles.where((a) => !a.isFeatured && a.category == cat).toList();
+  @override
+  void initState() {
+    super.initState();
+    _dataFuture = _loadData();
   }
 
-  EducationArticle? get _featuredArticle {
+  Future<_EducationData> _loadData() async {
+    final articles = await _repository.fetchArticles();
+    final videos = await _repository.fetchVideos();
+    return _EducationData(articles: articles, videos: videos);
+  }
+
+  void _retry() {
+    setState(() {
+      _dataFuture = _loadData();
+    });
+  }
+
+  List<EducationArticle> _filteredArticles(List<EducationArticle> all) {
+    final cat = _categories[_selectedCategoryIndex];
+    if (cat == 'Semua') return all.where((a) => !a.isFeatured).toList();
+    return all.where((a) => !a.isFeatured && a.category == cat).toList();
+  }
+
+  EducationArticle? _featuredArticle(List<EducationArticle> all) {
     try {
-      return _articles.firstWhere((a) => a.isFeatured);
+      return all.firstWhere((a) => a.isFeatured);
     } catch (_) {
-      return _articles.isNotEmpty ? _articles.first : null;
+      return all.isNotEmpty ? all.first : null;
     }
   }
 
@@ -42,124 +70,182 @@ class _EducationPageState extends State<EducationPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: _buildAppBar(context),
-      body: CustomScrollView(
-        slivers: [
-          // ── Hero Banner ──
-          if (_featuredArticle != null)
-            SliverToBoxAdapter(
+      body: FutureBuilder<_EducationData>(
+        future: _dataFuture,
+        builder: (context, snapshot) {
+          // ── Loading ──
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // ── Error ──
+          if (snapshot.hasError) {
+            final errorMsg = snapshot.error
+                .toString()
+                .replaceFirst('Exception: ', '');
+            return Center(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: _HeroBanner(
-                  article: _featuredArticle!,
-                  onTap: () => _openDetail(_featuredArticle!),
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_outlined,
+                        size: 72, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    Text(
+                      errorMsg,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.grey, fontSize: 15, height: 1.5),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _retry,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Coba Lagi'),
+                    ),
+                  ],
                 ),
               ),
-            ),
+            );
+          }
 
-          // ── Category Tabs ──
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: _CategoryTabs(
-                categories: _categories,
-                selectedIndex: _selectedCategoryIndex,
-                onTap: (i) => setState(() => _selectedCategoryIndex = i),
+          // ── Success ──
+          final data = snapshot.data!;
+          final featured = _featuredArticle(data.articles);
+          final filtered = _filteredArticles(data.articles);
+
+          return CustomScrollView(
+            slivers: [
+              // ── Hero Banner ──
+              if (featured != null)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: _HeroBanner(
+                      article: featured,
+                      onTap: () => _openDetail(featured),
+                    ),
+                  ),
+                ),
+
+              // ── Category Tabs ──
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: _CategoryTabs(
+                    categories: _categories,
+                    selectedIndex: _selectedCategoryIndex,
+                    onTap: (i) =>
+                        setState(() => _selectedCategoryIndex = i),
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // ── Artikel Terbaru header ──
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
-              child: _SectionHeader(
-                icon: Icons.article_outlined,
-                label: 'Artikel Terbaru',
+              // ── Artikel Terbaru header ──
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
+                  child: _SectionHeader(
+                    icon: Icons.article_outlined,
+                    label: 'Artikel Terbaru',
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // ── Article Grid ──
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: _filteredArticles.isEmpty
-                ? const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(
-                        child: Text(
-                          'Belum ada artikel untuk kategori ini.',
-                          style: TextStyle(color: Colors.grey),
+              // ── Article Grid ──
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: filtered.isEmpty
+                    ? const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text(
+                              'Belum ada artikel untuk kategori ini.',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                      )
+                    : SliverGrid(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, i) => _ArticleCard(
+                            article: filtered[i],
+                            onTap: () => _openDetail(filtered[i]),
+                          ),
+                          childCount: filtered.length,
+                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.75,
                         ),
                       ),
-                    ),
-                  )
-                : SliverGrid(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, i) => _ArticleCard(
-                        article: _filteredArticles[i],
-                        onTap: () => _openDetail(_filteredArticles[i]),
-                      ),
-                      childCount: _filteredArticles.length,
-                    ),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.75,
-                    ),
-                  ),
-          ),
-
-          // ── Video Edukasi header ──
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-              child: Row(
-                children: [
-                  const _SectionHeader(
-                    icon: Icons.play_circle_outline,
-                    label: 'Video Edukasi',
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF1F6FEB),
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Text(
-                      'LIHAT SEMUA',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ],
               ),
-            ),
-          ),
 
-          // ── Video horizontal list ──
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 180,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: _videos.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (context, i) => _VideoCard(video: _videos[i]),
+              // ── Video Edukasi header ──
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                  child: Row(
+                    children: [
+                      const _SectionHeader(
+                        icon: Icons.play_circle_outline,
+                        label: 'Video Edukasi',
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () {},
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF1F6FEB),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: const Text(
+                          'LIHAT SEMUA',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // bottom padding
-          const SliverToBoxAdapter(child: SizedBox(height: 28)),
-        ],
+              // ── Video horizontal list ──
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 180,
+                  child: data.videos.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Belum ada video.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: data.videos.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 12),
+                          itemBuilder: (context, i) =>
+                              _VideoCard(video: data.videos[i]),
+                        ),
+                ),
+              ),
+
+              // bottom padding
+              const SliverToBoxAdapter(child: SizedBox(height: 28)),
+            ],
+          );
+        },
       ),
     );
   }
