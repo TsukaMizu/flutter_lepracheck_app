@@ -18,6 +18,7 @@ class _CustomCameraPageState extends State<CustomCameraPage>
   bool _isInitialized = false;
   bool _isCapturing = false;
   String? _error;
+  FlashMode _flashMode = FlashMode.auto;
 
   @override
   void initState() {
@@ -73,12 +74,43 @@ class _CustomCameraPageState extends State<CustomCameraPage>
     _controller = controller;
     try {
       await controller.initialize();
+      await _applyFlashMode(controller);
       if (!mounted) return;
       setState(() => _isInitialized = true);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = 'Gagal menginisialisasi kamera: $e');
     }
+  }
+
+  Future<void> _applyFlashMode(CameraController controller) async {
+    try {
+      await controller.setFlashMode(_flashMode);
+    } catch (e) {
+      // Perangkat tidak mendukung flash (mis. emulator); abaikan agar tidak crash.
+      debugPrint('setFlashMode gagal (flash tidak didukung): $e');
+    }
+  }
+
+  Future<void> _toggleFlash() async {
+    final next = switch (_flashMode) {
+      FlashMode.auto => FlashMode.always,
+      FlashMode.always => FlashMode.off,
+      _ => FlashMode.auto,
+    };
+    setState(() => _flashMode = next);
+    final controller = _controller;
+    if (controller != null && controller.value.isInitialized) {
+      await _applyFlashMode(controller);
+    }
+  }
+
+  IconData _flashIcon() {
+    return switch (_flashMode) {
+      FlashMode.always => Icons.flash_on,
+      FlashMode.off => Icons.flash_off,
+      _ => Icons.flash_auto,
+    };
   }
 
   Future<void> _flipCamera() async {
@@ -175,6 +207,21 @@ class _CustomCameraPageState extends State<CustomCameraPage>
             child: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
               onPressed: () => context.go('/home'),
+            ),
+          ),
+
+          // Tombol flash
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 8,
+            child: IconButton(
+              tooltip: switch (_flashMode) {
+                FlashMode.always => 'Flash: Nyala',
+                FlashMode.off => 'Flash: Mati',
+                _ => 'Flash: Auto',
+              },
+              icon: Icon(_flashIcon(), color: Colors.white),
+              onPressed: _isInitialized ? _toggleFlash : null,
             ),
           ),
         ],
