@@ -12,7 +12,7 @@ import 'features/home/home_page.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/shell/app_shell.dart';
 import 'features/welcome/welcome_page.dart';
-import 'features/splash/splash_gate_page.dart';
+import 'features/splash/splash_page.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _shellKey = GlobalKey<NavigatorState>();
@@ -23,7 +23,7 @@ final router = GoRouter(
   routes: [
     GoRoute(
       path: '/splash',
-      builder: (context, state) => const SplashGatePage(),
+      builder: (context, state) => const SplashPage(),
     ),
     GoRoute(
       path: '/welcome',
