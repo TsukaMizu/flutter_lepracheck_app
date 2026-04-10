@@ -393,14 +393,18 @@ class _HistoryCard extends StatelessWidget {
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                   ),
                   const SizedBox(height: 10),
-                  GestureDetector(
+                  InkWell(
                     onTap: onOpen,
-                    child: Text(
-                      'Lihat Detail >',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: cs.primary,
-                        fontWeight: FontWeight.w600,
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        'Lihat Detail >',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: cs.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
