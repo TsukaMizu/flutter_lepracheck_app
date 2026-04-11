@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'education_article.dart';
 import 'education_repository.dart';
@@ -604,9 +605,35 @@ class _VideoCard extends StatelessWidget {
 
   final EducationVideo video;
 
+  Future<void> _openVideo(BuildContext context) async {
+    final urlString = video.videoUrl.trim();
+    if (urlString.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link video tidak valid.')),
+      );
+      return;
+    }
+    final uri = Uri.tryParse(urlString);
+    if (uri == null || !uri.hasScheme) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link video tidak valid.')),
+      );
+      return;
+    }
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membuka link video.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return GestureDetector(
+      onTap: () => _openVideo(context),
+      child: SizedBox(
       width: 180,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,6 +705,7 @@ class _VideoCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 
