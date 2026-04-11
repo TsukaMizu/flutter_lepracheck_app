@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class MlResult {
   final String label; // "indikasi" / "tidak_indikasi"
@@ -28,7 +29,11 @@ class RemoteMlService {
     final uri = Uri.parse('$baseUrl/predict');
     final req = http.MultipartRequest('POST', uri);
 
-    req.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+    req.files.add(await http.MultipartFile.fromPath(
+      'file',
+      imageFile.path,
+      contentType: MediaType('image', 'jpeg'),
+    ));
 
     final res = await req.send();
     final body = await res.stream.bytesToString();
