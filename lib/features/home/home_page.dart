@@ -44,29 +44,16 @@ class HomePage extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
               children: [
-                // Header: avatar + LepraCheck + bell
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: cs.primaryContainer,
-                      child: Icon(Icons.person_outline, color: cs.onPrimaryContainer),
+                // Header: LepraCheck di tengah
+                Center(
+                  child: Text(
+                    'LepraCheck',
+                    style: TextStyle(
+                      color: cs.primary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'LepraCheck',
-                      style: TextStyle(
-                        color: cs.primary,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.notifications_none),
-                    ),
-                  ],
+                  ),
                 ),
 
                 const SizedBox(height: 12),
@@ -74,8 +61,8 @@ class HomePage extends StatelessWidget {
                 Text(
                   'Selamat Datang Di Aplikasi LepraCheck',
                   style: TextStyle(
-                    fontSize: 28,
-                    height: 1.15,
+                    fontSize: 20,
+                    height: 1.3,
                     fontWeight: FontWeight.w900,
                     color: cs.onSurface,
                   ),
