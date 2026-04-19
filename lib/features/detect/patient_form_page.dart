@@ -238,7 +238,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Data ini bersifat opsional, namun sangat membantu untuk keperluan pelaporan.',
+                  'Isi data pasien berikut untuk melengkapi laporan skrining.',
                   style: TextStyle(
                     fontSize: 13,
                     color: cs.onSurfaceVariant,
@@ -262,8 +262,11 @@ class _PatientFormPageState extends State<PatientFormPage> {
                     LengthLimitingTextInputFormatter(16),
                   ],
                   validator: (v) {
-                    if (v != null && v.isNotEmpty && v.length != 16) {
-                      return 'NIK harus terdiri dari 16 digit';
+                    if (v == null || v.trim().isEmpty) {
+                      return 'NIK tidak boleh kosong';
+                    }
+                    if (v.trim().length != 16) {
+                      return 'NIK harus berisi 16 digit angka';
                     }
                     return null;
                   },
@@ -281,6 +284,12 @@ class _PatientFormPageState extends State<PatientFormPage> {
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                   textCapitalization: TextCapitalization.words,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Nama tidak boleh kosong';
+                    }
+                    return null;
+                  },
                 ),
 
                 const SizedBox(height: 12),
@@ -297,6 +306,12 @@ class _PatientFormPageState extends State<PatientFormPage> {
                   ),
                   maxLines: 3,
                   textCapitalization: TextCapitalization.sentences,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Alamat tidak boleh kosong';
+                    }
+                    return null;
+                  },
                 ),
 
                 const SizedBox(height: 16),
