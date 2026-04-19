@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/ml/remote_ml_service.dart';
+import '../../data/ml/tflite_ml_service.dart';
 
 class GeneratedPage extends StatefulWidget {
   final String imagePath;
@@ -16,14 +17,23 @@ class GeneratedPage extends StatefulWidget {
 class _GeneratedPageState extends State<GeneratedPage> {
   bool _started = false;
 
+  // Local on-device inference (offline-first).
+  final _tflite = TfliteMlService();
+
+  // Remote fallback – used only when TFLite is unavailable.
   // GANTI sesuai IP laptop kamu saat demo
-  // Tips: kalau IP sering berubah, nanti kita bisa bikin halaman Settings sederhana.
-  final _ml = const RemoteMlService(baseUrl: 'http://10.45.109.198:8000');
+  final _remote = const RemoteMlService(baseUrl: 'http://10.45.109.198:8000');
 
   @override
   void initState() {
     super.initState();
     _runOnce();
+  }
+
+  @override
+  void dispose() {
+    _tflite.dispose();
+    super.dispose();
   }
 
   Future<void> _runOnce() async {
@@ -41,7 +51,14 @@ class _GeneratedPageState extends State<GeneratedPage> {
         return;
       }
 
-      final result = await _ml.predictImageFile(file);
+      // Try local TFLite inference first; fall back to remote on error.
+      late MlResult result;
+      try {
+        result = await _tflite.predictImageFile(file);
+      } catch (tfliteError) {
+        debugPrint('TFLite inference failed, falling back to remote: $tfliteError');
+        result = await _remote.predictImageFile(file);
+      }
 
       if (!mounted) return;
       context.go(
