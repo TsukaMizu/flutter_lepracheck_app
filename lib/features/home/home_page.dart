@@ -1,10 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/history_entry.dart';
 import '../../data/history_store.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  HistoryEntry? _latest;
+  bool _loadingLatest = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLatest();
+  }
+
+  Future<void> _loadLatest() async {
+    final latest = await HistoryStore.getLatest();
+    if (mounted) {
+      setState(() {
+        _latest = latest;
+        _loadingLatest = false;
+      });
+    }
+  }
 
   String _formatDate(DateTime dt) {
     // Simple format biar mirip desain (tanpa intl dulu)
@@ -34,14 +59,9 @@ class HomePage extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: FutureBuilder(
-          future: HistoryStore.getLatest(),
-          builder: (context, snapshot) {
-            final latest = snapshot.data;
-
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-              children: [
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+          children: [
                 // Header: LepraCheck di tengah
                 Center(
                   child: Text(
@@ -173,9 +193,9 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 // Skrining terakhir card
-                if (snapshot.connectionState != ConnectionState.done)
+                if (_loadingLatest)
                   const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()))
-                else if (latest == null)
+                else if (_latest == null)
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -188,7 +208,10 @@ class HomePage extends StatelessWidget {
                 else
                   Card(
                     child: ListTile(
-                      onTap: () => context.push('/history/detail/${latest.id}'),
+                      onTap: () async {
+                        await context.push('/history/detail/${_latest!.id}');
+                        if (mounted) _loadLatest();
+                      },
                       leading: Container(
                         width: 52,
                         height: 52,
@@ -203,10 +226,10 @@ class HomePage extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.w900, color: cs.onSurface),
                       ),
                       subtitle: Text(
-                        latest.label == 'indikasi' ? 'Risiko TINGGI' : 'Risiko RENDAH',
+                        _latest!.label == 'indikasi' ? 'Risiko TINGGI' : 'Risiko RENDAH',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
-                          color: latest.label == 'indikasi' ? cs.error : const Color(0xFF16A34A),
+                          color: _latest!.label == 'indikasi' ? cs.error : const Color(0xFF16A34A),
                         ),
                       ),
                       trailing: const Icon(Icons.chevron_right),
@@ -303,10 +326,8 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+          ),
     );
   }
 }
