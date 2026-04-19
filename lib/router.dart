@@ -8,6 +8,7 @@ import 'features/detect/patient_form_page.dart';
 import 'features/detect/result_page.dart';
 import 'features/about/about_page.dart';
 import 'features/education/education_page.dart';
+import 'features/history/history_detail_page.dart';
 import 'features/history/history_page.dart';
 import 'features/home/home_page.dart';
 import 'features/onboarding/onboarding_page.dart';
@@ -107,6 +108,13 @@ final router = GoRouter(
           label: label,
           confidence: confidence,
         );
+      },
+    ),
+    GoRoute(
+      path: '/history/detail/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return HistoryDetailPage(id: id);
       },
     ),
     // ShellRoute membungkus halaman-halaman tab utama dengan AppShell

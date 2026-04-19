@@ -105,12 +105,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 : _GroupedHistoryList(
                     sections: sections,
                     formatDateTime: _formatDateTime,
-                    onOpen: (e) => context.go(
-                      '/detect/result'
-                      '?path=${Uri.encodeComponent(e.imagePath)}'
-                      '&label=${Uri.encodeComponent(e.label)}'
-                      '&conf=${e.confidence}',
-                    ),
+                    onOpen: (e) => context.go('/history/detail/${e.id}'),
                   ),
           ),
         ],
