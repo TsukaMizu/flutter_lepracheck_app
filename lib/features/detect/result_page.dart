@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 ///
 /// Pengguna dapat menekan tombol "Lengkapi Data Laporan" untuk mengisi data
 /// pasien (NIK, Nama, Alamat, GPS) sebelum laporan disimpan ke riwayat.
-class ResultPage extends StatelessWidget {
+class ResultPage extends StatefulWidget {
   final String imagePath;
   final String label;
   final double confidence;
@@ -20,9 +20,43 @@ class ResultPage extends StatelessWidget {
   });
 
   @override
+  State<ResultPage> createState() => _ResultPageState();
+}
+
+class _ResultPageState extends State<ResultPage> {
+  /// Menampilkan dialog konfirmasi sebelum meninggalkan halaman tanpa menyimpan.
+  ///
+  /// [onConfirm] dipanggil jika pengguna memilih "Ya, Tinggalkan".
+  Future<void> _showDiscardWarningDialog(VoidCallback onConfirm) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Data Belum Disimpan'),
+        content: const Text(
+          'Jika Anda meninggalkan halaman ini, hasil skrining dan gambar '
+          'tidak akan tersimpan ke riwayat. Anda yakin ingin melanjutkan?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              onConfirm();
+            },
+            child: const Text('Ya, Tinggalkan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isIndication = label == 'indikasi';
+    final isIndication = widget.label == 'indikasi';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Hasil')),
@@ -36,9 +70,9 @@ class ResultPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 child: AspectRatio(
                   aspectRatio: 1,
-                  child: imagePath.isEmpty
+                  child: widget.imagePath.isEmpty
                       ? const ColoredBox(color: Colors.black12)
-                      : Image.file(File(imagePath), fit: BoxFit.cover),
+                      : Image.file(File(widget.imagePath), fit: BoxFit.cover),
                 ),
               ),
               const SizedBox(height: 12),
@@ -59,7 +93,7 @@ class ResultPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text('Confidence: ${(confidence * 100).toStringAsFixed(0)}%'),
+                      Text('Confidence: ${(widget.confidence * 100).toStringAsFixed(0)}%'),
                       const SizedBox(height: 12),
                       const Text('Hasil ini hanya screening, bukan diagnosis dokter.'),
                     ],
@@ -71,9 +105,9 @@ class ResultPage extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () => context.go(
                   '/detect/form'
-                  '?path=${Uri.encodeComponent(imagePath)}'
-                  '&label=${Uri.encodeComponent(label)}'
-                  '&conf=$confidence',
+                  '?path=${Uri.encodeComponent(widget.imagePath)}'
+                  '&label=${Uri.encodeComponent(widget.label)}'
+                  '&conf=${widget.confidence}',
                 ),
                 icon: const Icon(Icons.assignment_outlined),
                 label: const Text('Lengkapi Data Laporan'),
@@ -83,12 +117,16 @@ class ResultPage extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               OutlinedButton(
-                onPressed: () => context.go('/detect'),
+                onPressed: () => _showDiscardWarningDialog(
+                  () => context.go('/detect'),
+                ),
                 child: const Text('Deteksi Lagi'),
               ),
               const SizedBox(height: 10),
               TextButton(
-                onPressed: () => context.go('/history'),
+                onPressed: () => _showDiscardWarningDialog(
+                  () => context.go('/history'),
+                ),
                 child: const Text('Lihat Riwayat'),
               ),
             ],
