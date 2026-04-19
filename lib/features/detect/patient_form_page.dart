@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/history_entry.dart';
@@ -59,24 +59,29 @@ class _PatientFormPageState extends State<PatientFormPage> {
     setState(() => _fetchingLocation = true);
 
     try {
+      final loc = Location();
+
       // Cek apakah layanan lokasi aktif di perangkat
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      bool serviceEnabled = await loc.serviceEnabled();
       if (!serviceEnabled) {
-        _showLocationError('Layanan GPS tidak aktif. Aktifkan GPS di pengaturan perangkat.');
-        return;
+        serviceEnabled = await loc.requestService();
+        if (!serviceEnabled) {
+          _showLocationError('Layanan GPS tidak aktif. Aktifkan GPS di pengaturan perangkat.');
+          return;
+        }
       }
 
       // Cek dan minta permission lokasi
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
+      PermissionStatus permission = await loc.hasPermission();
+      if (permission == PermissionStatus.denied) {
+        permission = await loc.requestPermission();
+        if (permission != PermissionStatus.granted) {
           _showLocationError('Izin lokasi ditolak. Lokasi tidak bisa diambil secara otomatis.');
           return;
         }
       }
 
-      if (permission == LocationPermission.deniedForever) {
+      if (permission == PermissionStatus.deniedForever) {
         _showLocationError(
           'Izin lokasi ditolak permanen. Buka Pengaturan > Izin Aplikasi untuk mengaktifkannya.',
         );
@@ -84,31 +89,30 @@ class _PatientFormPageState extends State<PatientFormPage> {
       }
 
       // Ambil posisi dengan timeout 10 detik agar tidak freeze saat demo
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
+      final locData = await loc.getLocation().timeout(const Duration(seconds: 10));
 
       if (mounted) {
-        setState(() {
-          _latitude = position.latitude;
-          _longitude = position.longitude;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Lokasi berhasil diambil: ${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}',
+        if (locData.latitude != null && locData.longitude != null) {
+          setState(() {
+            _latitude = locData.latitude;
+            _longitude = locData.longitude;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Lokasi berhasil diambil: ${locData.latitude!.toStringAsFixed(5)}, ${locData.longitude!.toStringAsFixed(5)}',
+              ),
+              backgroundColor: Colors.green,
             ),
-            backgroundColor: Colors.green,
-          ),
-        );
+          );
+        } else {
+          _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
+        }
       }
     } on TimeoutException {
-      _showLocationError('Waktu pengambilan lokasi habis. Silakan coba lagi atau isi alamat manual.');
+      _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
     } catch (e) {
-      _showLocationError('Gagal mengambil lokasi. Silakan isi alamat secara manual.');
+      _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
     } finally {
       if (mounted) setState(() => _fetchingLocation = false);
     }
