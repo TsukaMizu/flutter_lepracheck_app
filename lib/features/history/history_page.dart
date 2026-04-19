@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/history_entry.dart';
 import '../../data/history_store.dart';
@@ -311,6 +312,23 @@ class _HistoryCard extends StatelessWidget {
     required this.onOpen,
   });
 
+  /// Membuka Google Maps di browser/aplikasi eksternal menggunakan
+  /// koordinat yang tersimpan di entri riwayat.
+  Future<void> _openMap(BuildContext context) async {
+    final lat = entry.latitude!;
+    final lng = entry.longitude!;
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tidak dapat membuka aplikasi peta.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -325,6 +343,13 @@ class _HistoryCard extends StatelessWidget {
         isIndication ? const Color(0xFFFFF3E0) : const Color(0xFFE8F5E9);
     final badgeText =
         isIndication ? const Color(0xFFE65100) : const Color(0xFF2E7D32);
+
+    // Tentukan apakah ada data pasien yang perlu ditampilkan
+    final hasPatientName =
+        entry.patientName != null && entry.patientName!.isNotEmpty;
+    final hasNik = entry.nik != null && entry.nik!.isNotEmpty;
+    final hasAddress = entry.address != null && entry.address!.isNotEmpty;
+    final hasCoords = entry.latitude != null && entry.longitude != null;
 
     return Card(
       elevation: 0,
@@ -392,21 +417,115 @@ class _HistoryCard extends StatelessWidget {
                     formattedTime,
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                   ),
+
+                  // Data pasien (ditampilkan jika tersedia)
+                  if (hasPatientName) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.person_outline,
+                            size: 14, color: cs.onSurfaceVariant),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            entry.patientName!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (hasNik) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.badge_outlined,
+                            size: 14, color: cs.onSurfaceVariant),
+                        const SizedBox(width: 4),
+                        Text(
+                          'NIK: ${entry.nik!}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (hasAddress) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.home_outlined,
+                            size: 14, color: cs.onSurfaceVariant),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            entry.address!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: cs.onSurfaceVariant,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
                   const SizedBox(height: 10),
-                  InkWell(
-                    onTap: onOpen,
-                    borderRadius: BorderRadius.circular(4),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(
-                        'Lihat Detail >',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: cs.primary,
-                          fontWeight: FontWeight.w600,
+
+                  // Baris bawah: Lihat Detail + Buka Peta (jika ada koordinat)
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: onOpen,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(
+                            'Lihat Detail >',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: cs.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      if (hasCoords) ...[
+                        const SizedBox(width: 12),
+                        InkWell(
+                          onTap: () => _openMap(context),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.map_outlined,
+                                    size: 14, color: cs.secondary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Buka Peta',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: cs.secondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),

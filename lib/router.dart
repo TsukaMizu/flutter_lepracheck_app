@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'features/detect/custom_camera_page.dart';
 import 'features/detect/generated_page.dart';
 import 'features/detect/image_validation_page.dart';
+import 'features/detect/patient_form_page.dart';
 import 'features/detect/result_page.dart';
 import 'features/about/about_page.dart';
 import 'features/education/education_page.dart';
@@ -31,6 +32,7 @@ final _shellKey = GlobalKey<NavigatorState>();
 ///   /detect/validate  → ImageValidationPage (pratinjau & validasi kualitas foto)
 ///   /detect/generated → GeneratedPage (proses inferensi ML + loading screen)
 ///   /detect/result    → ResultPage (tampilkan hasil Indikasi / Tidak Ada Indikasi)
+///   /detect/form      → PatientFormPage (form data pasien + GPS sebelum simpan)
 ///
 ///   Tab utama (di dalam ShellRoute, memiliki bottom navigation bar):
 ///   /home       → HomePage
@@ -85,6 +87,22 @@ final router = GoRouter(
         final confidence =
             double.tryParse(state.uri.queryParameters['conf'] ?? '') ?? 0.0;
         return ResultPage(
+          imagePath: imagePath,
+          label: label,
+          confidence: confidence,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/detect/form',
+      builder: (context, state) {
+        // Data hasil deteksi diteruskan ke PatientFormPage untuk dilengkapi
+        // dengan data pasien (NIK, Nama, Alamat, dan koordinat GPS).
+        final imagePath = state.uri.queryParameters['path'] ?? '';
+        final label = state.uri.queryParameters['label'] ?? 'tidak_indikasi';
+        final confidence =
+            double.tryParse(state.uri.queryParameters['conf'] ?? '') ?? 0.0;
+        return PatientFormPage(
           imagePath: imagePath,
           label: label,
           confidence: confidence,
