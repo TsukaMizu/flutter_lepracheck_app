@@ -50,6 +50,53 @@ class _HistoryDetailPageState extends State<HistoryDetailPage> {
     }
   }
 
+  Future<void> _showDeleteConfirmationDialog(
+      BuildContext context, String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus Riwayat'),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus riwayat skrining ini? '
+          'Data dan gambar terkait akan dihapus secara permanen.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => dialogContext.pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => dialogContext.pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            child: const Text('Ya, Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await HistoryStore.removeById(id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Riwayat berhasil dihapus.')),
+          );
+          context.pop();
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal menghapus riwayat. Silakan coba lagi.'),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _openMap(HistoryEntry entry) async {
     final lat = entry.latitude;
     final lng = entry.longitude;
@@ -158,6 +205,14 @@ class _HistoryDetailPageState extends State<HistoryDetailPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Hapus Riwayat',
+            onPressed: () =>
+                _showDeleteConfirmationDialog(context, entry.id),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
