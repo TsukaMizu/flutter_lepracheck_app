@@ -154,6 +154,10 @@ class _HistoryDetailPageState extends State<HistoryDetailPage> {
       appBar: AppBar(
         title: const Text('Detail Riwayat'),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
