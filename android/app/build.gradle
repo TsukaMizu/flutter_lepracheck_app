@@ -7,6 +7,10 @@ plugins {
 
 android {
     compileSdk = 35
+
+    aaptOptions {
+        noCompress 'tflite'
+    }
     namespace = "com.example.flutter_lepracheck_app"
     // compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
