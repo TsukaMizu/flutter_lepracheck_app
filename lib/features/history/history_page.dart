@@ -105,7 +105,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 : _GroupedHistoryList(
                     sections: sections,
                     formatDateTime: _formatDateTime,
-                    onOpen: (e) => context.go('/history/detail/${e.id}'),
+                    onOpen: (e) => context.push('/history/detail/${e.id}'),
                   ),
           ),
         ],

@@ -103,7 +103,7 @@ class _ResultPageState extends State<ResultPage> {
               const SizedBox(height: 16),
               // Tombol utama: arahkan ke form data pasien sebelum menyimpan laporan
               FilledButton.icon(
-                onPressed: () => context.go(
+                onPressed: () => context.push(
                   '/detect/form'
                   '?path=${Uri.encodeComponent(widget.imagePath)}'
                   '&label=${Uri.encodeComponent(widget.label)}'

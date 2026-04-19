@@ -188,7 +188,7 @@ class HomePage extends StatelessWidget {
                 else
                   Card(
                     child: ListTile(
-                      onTap: () => context.go('/history/detail/${latest.id}'),
+                      onTap: () => context.push('/history/detail/${latest.id}'),
                       leading: Container(
                         width: 52,
                         height: 52,

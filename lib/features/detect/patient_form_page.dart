@@ -178,7 +178,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
     final isIndication = widget.label == 'indikasi';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Data Pasien')),
+      appBar: AppBar(title: const Text('Form Data Laporan')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
