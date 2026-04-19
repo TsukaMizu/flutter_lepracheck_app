@@ -6,6 +6,10 @@ import 'package:go_router/go_router.dart';
 import '../../data/history_entry.dart';
 import '../../data/history_store.dart';
 
+/// Halaman hasil deteksi yang menampilkan label prediksi dan nilai confidence.
+///
+/// Halaman ini juga menyimpan hasil ke riwayat lokal (Hive) secara otomatis
+/// saat pertama kali ditampilkan.
 class ResultPage extends StatefulWidget {
   final String imagePath;
   final String label;
@@ -23,6 +27,8 @@ class ResultPage extends StatefulWidget {
 }
 
 class _ResultPageState extends State<ResultPage> {
+  // Flag untuk memastikan penyimpanan ke riwayat hanya terjadi sekali,
+  // meskipun widget di-rebuild (misalnya karena rotasi layar).
   bool _saved = false;
 
   @override
@@ -31,6 +37,9 @@ class _ResultPageState extends State<ResultPage> {
     _saveOnce();
   }
 
+  /// Menyimpan hasil deteksi ke penyimpanan lokal (Hive) tepat sekali.
+  ///
+  /// ID entri dibuat dari timestamp mikro-detik untuk memastikan keunikan.
   Future<void> _saveOnce() async {
     if (_saved) return;
     _saved = true;
