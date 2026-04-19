@@ -30,6 +30,14 @@ class HistoryStore {
     return all.isEmpty ? null : all.first;
   }
 
+  /// Mengambil satu entri riwayat berdasarkan [id]. Mengembalikan null jika tidak ditemukan.
+  static Future<HistoryEntry?> getById(String id) async {
+    final box = await _box();
+    final raw = box.get(id);
+    if (raw == null || raw is! Map<dynamic, dynamic>) return null;
+    return HistoryEntry.fromMap(raw);
+  }
+
   /// Menghapus satu entri berdasarkan [id].
   static Future<void> removeById(String id) async {
     final box = await _box();
