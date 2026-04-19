@@ -621,6 +621,11 @@ class _VideoCard extends StatelessWidget {
       return;
     }
     if (await canLaunchUrl(uri)) {
+      // LaunchMode.externalApplication digunakan agar video dibuka
+      // di aplikasi YouTube (atau browser eksternal), bukan di dalam
+      // WebView bawaan Flutter. Ini memberikan pengalaman menonton
+      // yang lebih baik karena mendukung fullscreen, kualitas HD,
+      // dan kontrol video native dari aplikasi YouTube.
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

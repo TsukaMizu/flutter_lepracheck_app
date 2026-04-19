@@ -7,7 +7,6 @@ class AboutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // TODO: kalau kamu ingin versi otomatis dari app, nanti kita bisa pakai package_info_plus.
     const appVersionText = 'v1.0.2 (Build 2405)';
 
     return Scaffold(
@@ -51,9 +50,6 @@ class AboutPage extends StatelessWidget {
           _AiTechCard(cs: cs),
 
           const SizedBox(height: 18),
-
-          // HAPUS: "Syarat dan Ketentuan" & "Kebijakan Privasi" sesuai permintaan kamu
-          // (di desain ada, tapi kamu mau hilangkan)
 
           const SizedBox(height: 10),
           Center(
