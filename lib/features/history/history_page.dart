@@ -35,6 +35,80 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
+  Future<void> _deleteEntry(HistoryEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus Riwayat'),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus riwayat skrining ini? '
+          'Data dan gambar terkait akan dihapus secara permanen.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => dialogContext.pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => dialogContext.pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            child: const Text('Ya, Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await HistoryStore.removeById(entry.id);
+      if (mounted) {
+        setState(() {
+          _allItems.removeWhere((e) => e.id == entry.id);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Riwayat berhasil dihapus.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearAll() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus Semua Riwayat'),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus seluruh riwayat skrining? '
+          'Semua data dan gambar tidak dapat dikembalikan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => dialogContext.pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => dialogContext.pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            child: const Text('Ya, Hapus Semua'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await HistoryStore.clear();
+      if (mounted) {
+        setState(() {
+          _allItems = [];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Semua riwayat berhasil dihapus.')),
+        );
+      }
+    }
+  }
+
   List<HistoryEntry> get _filtered => switch (_activeFilter) {
         _HistoryFilter.indikasi =>
           _allItems.where((e) => e.label == 'indikasi').toList(),
@@ -92,6 +166,14 @@ class _HistoryPageState extends State<HistoryPage> {
       appBar: AppBar(
         title: const Text('Riwayat Skrining'),
         centerTitle: true,
+        actions: [
+          if (_allItems.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_outlined),
+              tooltip: 'Hapus Semua Riwayat',
+              onPressed: _clearAll,
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -105,7 +187,12 @@ class _HistoryPageState extends State<HistoryPage> {
                 : _GroupedHistoryList(
                     sections: sections,
                     formatDateTime: _formatDateTime,
-                    onOpen: (e) => context.push('/history/detail/${e.id}'),
+                    onOpen: (e) {
+                      context.push('/history/detail/${e.id}').then((_) {
+                        if (mounted) _loadHistory();
+                      });
+                    },
+                    onDelete: _deleteEntry,
                   ),
           ),
         ],
@@ -171,11 +258,13 @@ class _GroupedHistoryList extends StatelessWidget {
   final List<({String header, List<HistoryEntry> items})> sections;
   final String Function(DateTime) formatDateTime;
   final void Function(HistoryEntry) onOpen;
+  final void Function(HistoryEntry) onDelete;
 
   const _GroupedHistoryList({
     required this.sections,
     required this.formatDateTime,
     required this.onOpen,
+    required this.onDelete,
   });
 
   @override
@@ -202,6 +291,7 @@ class _GroupedHistoryList extends StatelessWidget {
             entry: e,
             formattedTime: formatDateTime(e.createdAt),
             onOpen: () => onOpen(e),
+            onDelete: () => onDelete(e),
           ),
         );
       },
@@ -300,11 +390,13 @@ class _HistoryCard extends StatelessWidget {
   final HistoryEntry entry;
   final String formattedTime;
   final VoidCallback onOpen;
+  final VoidCallback onDelete;
 
   const _HistoryCard({
     required this.entry,
     required this.formattedTime,
     required this.onOpen,
+    required this.onDelete,
   });
 
   /// Membuka Google Maps di browser/aplikasi eksternal menggunakan
@@ -403,6 +495,21 @@ class _HistoryCard extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             color: badgeText,
                           ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          iconSize: 18,
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                          tooltip: 'Hapus',
+                          onPressed: onDelete,
                         ),
                       ),
                     ],
