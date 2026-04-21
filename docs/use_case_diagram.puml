@@ -1,0 +1,141 @@
+@startuml use_case_diagram
+!theme plain
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor White
+  BorderColor #1565C0
+  BorderThickness 1.5
+  FontSize 11
+  ArrowColor #1565C0
+}
+skinparam actor {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+title LepraCheck – Use Case Diagram
+
+' ─────────────────────────────────────────────
+' ACTORS
+' ─────────────────────────────────────────────
+actor "User / Kader\nKesehatan" as User
+actor "Camera\nHardware" as Camera
+actor "Image\nGallery" as Gallery
+actor "TFLite ML\nEngine" as TFLite
+actor "Remote\nFastAPI Server" as Remote
+actor "GPS / Location\nService" as GPS
+actor "Hive\nDatabase" as Hive
+actor "HTTP\nCMS API" as CmsApi
+actor "Google\nMaps" as GMap
+
+' ─────────────────────────────────────────────
+' USE CASES – Grouped by package
+' ─────────────────────────────────────────────
+
+rectangle "ONBOARDING" {
+  usecase "UC-01\nTampilkan Splash Screen" as UC01
+  usecase "UC-02\nTampilkan Halaman Welcome" as UC02
+  usecase "UC-03\nSelesaikan Onboarding" as UC03
+}
+
+rectangle "NAVIGASI UTAMA" {
+  usecase "UC-04\nLihat Beranda" as UC04
+}
+
+rectangle "ALUR DETEKSI" {
+  usecase "UC-05\nAmbil Foto dengan Kamera" as UC05
+  usecase "UC-06\nPilih Foto dari Galeri" as UC06
+  usecase "UC-07\nReview & Validasi Foto" as UC07
+  usecase "UC-08\nProses Inferensi ML\n(On-Device / TFLite)" as UC08
+  usecase "UC-09\nProses Inferensi ML\n(Remote / FastAPI)" as UC09
+  usecase "UC-10\nLihat Hasil Deteksi" as UC10
+  usecase "UC-11\nIsi Form Data Pasien" as UC11
+  usecase "UC-12\nAmbil Lokasi GPS" as UC12
+  usecase "UC-13\nSimpan Laporan Skrining" as UC13
+}
+
+rectangle "RIWAYAT" {
+  usecase "UC-14\nLihat Daftar Riwayat" as UC14
+  usecase "UC-15\nFilter Riwayat" as UC15
+  usecase "UC-16\nLihat Detail Riwayat" as UC16
+  usecase "UC-17\nHapus Entri Riwayat" as UC17
+  usecase "UC-18\nHapus Semua Riwayat" as UC18
+  usecase "UC-19\nBuka Lokasi di Peta" as UC19
+}
+
+rectangle "EDUKASI" {
+  usecase "UC-20\nLihat Konten Edukasi" as UC20
+  usecase "UC-21\nFilter Artikel Edukasi" as UC21
+  usecase "UC-22\nBaca Detail Artikel" as UC22
+  usecase "UC-23\nTonton Video Edukasi" as UC23
+}
+
+rectangle "INFORMASI" {
+  usecase "UC-24\nLihat Halaman Tentang" as UC24
+}
+
+' ─────────────────────────────────────────────
+' USER → USE CASE ASSOCIATIONS
+' ─────────────────────────────────────────────
+User --> UC01
+User --> UC02
+User --> UC03
+User --> UC04
+User --> UC05
+User --> UC06
+User --> UC07
+User --> UC10
+User --> UC11
+User --> UC12
+User --> UC14
+User --> UC15
+User --> UC16
+User --> UC17
+User --> UC18
+User --> UC19
+User --> UC20
+User --> UC21
+User --> UC22
+User --> UC23
+User --> UC24
+
+' ─────────────────────────────────────────────
+' SECONDARY ACTOR ASSOCIATIONS
+' ─────────────────────────────────────────────
+Camera --> UC05
+Gallery --> UC06
+TFLite --> UC08
+Remote --> UC09
+GPS --> UC12
+Hive --> UC01
+Hive --> UC03
+Hive --> UC13
+Hive --> UC14
+Hive --> UC16
+Hive --> UC17
+Hive --> UC18
+CmsApi --> UC20
+GMap --> UC19
+
+' ─────────────────────────────────────────────
+' INCLUDE RELATIONSHIPS
+' ─────────────────────────────────────────────
+UC05 .> UC07 : <<include>>
+UC06 .> UC07 : <<include>>
+UC07 .> UC08 : <<include>>
+UC08 .> UC10 : <<include>>
+UC11 .> UC13 : <<include>>
+UC16 .> UC17 : <<include>>
+
+' ─────────────────────────────────────────────
+' EXTEND RELATIONSHIPS
+' ─────────────────────────────────────────────
+UC09 .> UC08 : <<extend>>\n[TFLite gagal]
+UC12 .> UC11 : <<extend>>\n[user request GPS]
+UC19 .> UC16 : <<extend>>\n[GPS data ada]
+UC02 .> UC01 : <<extend>>\n[onboarding belum selesai]
+UC04 .> UC01 : <<extend>>\n[onboarding selesai]
+
+@enduml
