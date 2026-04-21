@@ -5,7 +5,19 @@ import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
-import 'remote_ml_service.dart';
+/// Model data yang merepresentasikan hasil prediksi ML.
+///
+/// [label]      : 'indikasi' atau 'tidak_indikasi'
+/// [confidence] : nilai probabilitas dalam rentang 0.0–1.0
+class MlResult {
+  final String label; // "indikasi" / "tidak_indikasi"
+  final double confidence;
+
+  const MlResult({
+    required this.label,
+    required this.confidence,
+  });
+}
 
 /// Layanan inferensi ML secara lokal (on-device) menggunakan TensorFlow Lite.
 ///
