@@ -57,9 +57,6 @@ class TfliteMlService {
     }
   }
 
-  /// Mengembalikan [true] jika model sudah dimuat dan siap digunakan.
-  bool get isLoaded => _interpreter != null;
-
   /// Menjalankan inferensi pada [imageFile] dan mengembalikan [MlResult].
   ///
   /// Proses pra-pemrosesan gambar:
