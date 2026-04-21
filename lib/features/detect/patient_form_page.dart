@@ -411,13 +411,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
                   ),
                 ),
 
-                const SizedBox(height: 10),
-
-                // Tombol Lewati (tanpa menyimpan)
-                TextButton(
-                  onPressed: _saving ? null : () => context.go('/home'),
-                  child: const Text('Lewati, Kembali ke Beranda'),
-                ),
+                
               ],
             ),
           ),
