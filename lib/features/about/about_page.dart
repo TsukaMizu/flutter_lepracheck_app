@@ -11,10 +11,7 @@ class AboutPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Tentang Aplikasi',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        title: const Text('Tentang Aplikasi'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),

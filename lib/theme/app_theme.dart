@@ -18,7 +18,12 @@ class AppTheme {
         scrolledUnderElevation: 0,
         backgroundColor: base.scaffoldBackgroundColor,
         foregroundColor: cs.onSurface,
-        centerTitle: false,
+        centerTitle: true,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: cs.onSurface,
+        ),
       ),
       cardTheme: CardTheme(
         elevation: 0,

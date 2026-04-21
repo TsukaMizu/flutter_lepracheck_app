@@ -253,12 +253,7 @@ class _EducationPageState extends State<EducationPage> {
 
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: const Color(0xFFF7F8FA),
-      centerTitle: true,
-      title: const Text(
-        'Edukasi Kusta',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-      ),
+      title: const Text('Edukasi Kusta'),
       actions: [
         IconButton(
           icon: const Icon(Icons.search),
