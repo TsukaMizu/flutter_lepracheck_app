@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/ml/remote_ml_service.dart';
 import '../../data/ml/tflite_ml_service.dart';
 
 /// Halaman pemrosesan inferensi ML.
@@ -23,14 +22,9 @@ class _GeneratedPageState extends State<GeneratedPage> {
   // bahkan jika widget di-rebuild.
   bool _started = false;
 
-  // Inferensi lokal (on-device) menggunakan TFLite — prioritas utama.
+  // Inferensi lokal (on-device) menggunakan TFLite.
   // Tidak memerlukan jaringan sama sekali.
   final _tflite = TfliteMlService();
-
-  // Inferensi jarak jauh via FastAPI — hanya digunakan sebagai fallback
-  // jika TFLite gagal (misalnya model.tflite belum dimasukkan ke assets).
-  // Ganti IP di sini sesuai alamat laptop saat demo.
-  final _remote = const RemoteMlService(baseUrl: 'http://10.45.109.198:8000');
 
   @override
   void initState() {
@@ -45,12 +39,10 @@ class _GeneratedPageState extends State<GeneratedPage> {
     super.dispose();
   }
 
-  /// Menjalankan proses inferensi satu kali secara asinkron.
+  /// Menjalankan proses inferensi satu kali secara asinkron menggunakan TFLite.
   ///
-  /// Strategi: TFLite diutamakan (offline-first). Jika TFLite gagal,
-  /// aplikasi mencoba memanggil API jarak jauh sebagai cadangan.
-  /// Jika keduanya gagal, pesan error ditampilkan dan pengguna dikembalikan
-  /// ke halaman kamera.
+  /// Jika inferensi gagal (misalnya gambar tidak valid atau model gagal dimuat),
+  /// pesan error ditampilkan dan pengguna dikembalikan ke halaman kamera.
   Future<void> _runOnce() async {
     if (_started) return;
     _started = true;
@@ -66,15 +58,7 @@ class _GeneratedPageState extends State<GeneratedPage> {
         return;
       }
 
-      // Coba inferensi lokal (TFLite) terlebih dahulu.
-      // Jika gagal, gunakan API jarak jauh sebagai fallback.
-      late MlResult result;
-      try {
-        result = await _tflite.predictImageFile(file);
-      } catch (tfliteError) {
-        debugPrint('TFLite inference failed, falling back to remote: $tfliteError');
-        result = await _remote.predictImageFile(file);
-      }
+      final result = await _tflite.predictImageFile(file);
 
       if (!mounted) return;
       // Navigasi ke halaman hasil dengan meneruskan label dan confidence
@@ -87,7 +71,7 @@ class _GeneratedPageState extends State<GeneratedPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memproses ML: $e')),
+        SnackBar(content: Text('Gagal memproses gambar: $e')),
       );
       context.go('/detect');
     }
