@@ -148,7 +148,7 @@ class _HeroCard extends StatelessWidget {
                   const FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      'LepraCheck AI',
+                      'LepraCheck',
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       style: TextStyle(
@@ -303,31 +303,31 @@ class _AiTechCard extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 14),
-            Row(
-              children: const [
-                Expanded(
-                  child: _MetricChip(
-                    label: 'AKURASI',
-                    value: '92.5%',
-                  ),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: _MetricChip(
-                    label: 'RECALL',
-                    value: '89.2%',
-                  ),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: _MetricChip(
-                    label: 'F1-SCORE',
-                    value: '90.8%',
-                  ),
-                ),
-              ],
-            ),
+            // const SizedBox(height: 14),
+            // Row(
+            //   children: const [
+            //     Expanded(
+            //       child: _MetricChip(
+            //         label: 'AKURASI',
+            //         value: '92.5%',
+            //       ),
+            //     ),
+            //     SizedBox(width: 10),
+            //     Expanded(
+            //       child: _MetricChip(
+            //         label: 'RECALL',
+            //         value: '89.2%',
+            //       ),
+            //     ),
+            //     SizedBox(width: 10),
+            //     Expanded(
+            //       child: _MetricChip(
+            //         label: 'F1-SCORE',
+            //         value: '90.8%',
+            //       ),
+            //     ),
+            //   ],
+            // ),
 
             const SizedBox(height: 10),
             Row(
