@@ -16,6 +16,7 @@ class HistoryEntry {
   final String? address;
   final double? latitude;
   final double? longitude;
+  final double? locationAccuracy;
 
   HistoryEntry({
     required this.id,
@@ -28,6 +29,7 @@ class HistoryEntry {
     this.address,
     this.latitude,
     this.longitude,
+    this.locationAccuracy,
   });
 
   Map<String, dynamic> toMap() => {
@@ -41,11 +43,26 @@ class HistoryEntry {
         if (address != null) 'address': address,
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
+        if (locationAccuracy != null) 'locationAccuracy': locationAccuracy,
       };
+
+  static DateTime _parseCreatedAt(dynamic value) {
+    if (value is String) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    // Data lama tanpa createdAt dianggap paling lama (epoch 0) agar aman
+    // untuk migrasi, tetap lolos filter tanggal, dan selalu berada di urutan
+    // paling bawah dibanding data baru.
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
 
   static HistoryEntry fromMap(Map map) => HistoryEntry(
         id: map['id'] as String,
-        createdAt: DateTime.parse(map['createdAt'] as String),
+        createdAt: _parseCreatedAt(map['createdAt']),
         imagePath: map['imagePath'] as String,
         label: map['label'] as String,
         confidence: (map['confidence'] as num).toDouble(),
@@ -54,5 +71,6 @@ class HistoryEntry {
         address: map['address'] as String?,
         latitude: (map['latitude'] as num?)?.toDouble(),
         longitude: (map['longitude'] as num?)?.toDouble(),
+        locationAccuracy: (map['locationAccuracy'] as num?)?.toDouble(),
       );
 }

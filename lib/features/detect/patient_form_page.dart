@@ -39,6 +39,8 @@ class _PatientFormPageState extends State<PatientFormPage> {
   // Koordinat GPS yang berhasil diambil (bisa null jika belum/gagal)
   double? _latitude;
   double? _longitude;
+  double? _locationAccuracy;
+  bool _includeGps = false;
 
   bool _fetchingLocation = false;
   bool _saving = false;
@@ -51,11 +53,18 @@ class _PatientFormPageState extends State<PatientFormPage> {
     super.dispose();
   }
 
+  void _clearLocationData() {
+    _latitude = null;
+    _longitude = null;
+    _locationAccuracy = null;
+  }
+
   /// Mengambil lokasi GPS saat ini dengan timeout 10 detik.
   ///
   /// Fail-gracefully: jika permission ditolak atau timeout habis,
   /// akan muncul SnackBar informatif tanpa membuat aplikasi freeze.
-  Future<void> _fetchLocation() async {
+  Future<bool> _fetchLocation({bool showSuccess = true}) async {
+    var success = false;
     setState(() => _fetchingLocation = true);
 
     try {
@@ -67,7 +76,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
         serviceEnabled = await loc.requestService();
         if (!serviceEnabled) {
           _showLocationError('Layanan GPS tidak aktif. Aktifkan GPS di pengaturan perangkat.');
-          return;
+          return success;
         }
       }
 
@@ -77,7 +86,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
         permission = await loc.requestPermission();
         if (permission != PermissionStatus.granted) {
           _showLocationError('Izin lokasi ditolak. Lokasi tidak bisa diambil secara otomatis.');
-          return;
+          return success;
         }
       }
 
@@ -85,18 +94,20 @@ class _PatientFormPageState extends State<PatientFormPage> {
         _showLocationError(
           'Izin lokasi ditolak permanen. Buka Pengaturan > Izin Aplikasi untuk mengaktifkannya.',
         );
-        return;
+        return success;
       }
 
       // Ambil posisi dengan timeout 10 detik agar tidak freeze saat demo
       final locData = await loc.getLocation().timeout(const Duration(seconds: 10));
+      if (!mounted) return success;
 
-      if (mounted) {
-        if (locData.latitude != null && locData.longitude != null) {
-          setState(() {
-            _latitude = locData.latitude;
-            _longitude = locData.longitude;
-          });
+      if (locData.latitude != null && locData.longitude != null) {
+        setState(() {
+          _latitude = locData.latitude;
+          _longitude = locData.longitude;
+          _locationAccuracy = locData.accuracy;
+        });
+        if (showSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -105,9 +116,10 @@ class _PatientFormPageState extends State<PatientFormPage> {
               backgroundColor: Colors.green,
             ),
           );
-        } else {
-          _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
         }
+        success = true;
+      } else {
+        _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
       }
     } on TimeoutException {
       _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
@@ -116,6 +128,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
     } finally {
       if (mounted) setState(() => _fetchingLocation = false);
     }
+    return success;
   }
 
   void _showLocationError(String message) {
@@ -137,6 +150,11 @@ class _PatientFormPageState extends State<PatientFormPage> {
     setState(() => _saving = true);
 
     try {
+      _clearLocationData();
+      if (_includeGps) {
+        await _fetchLocation(showSuccess: false);
+      }
+
       final entry = HistoryEntry(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
@@ -148,6 +166,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
         address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
         latitude: _latitude,
         longitude: _longitude,
+        locationAccuracy: _locationAccuracy,
       );
 
       await HistoryStore.add(entry);
@@ -332,17 +351,48 @@ class _PatientFormPageState extends State<PatientFormPage> {
                           children: [
                             Icon(Icons.location_on_outlined, color: cs.primary),
                             const SizedBox(width: 8),
-                            Text(
-                              'Titik Lokasi (GPS)',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: cs.onSurface,
+                            Expanded(
+                              child: Text(
+                                'Sertakan lokasi GPS',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.onSurface,
+                                ),
                               ),
+                            ),
+                            Switch(
+                              value: _includeGps,
+                              onChanged: _saving
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _includeGps = value;
+                                        if (!value) {
+                                          _clearLocationData();
+                                        }
+                                      });
+                                    },
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        if (_latitude != null && _longitude != null)
+                        Text(
+                          'Lokasi hanya disimpan di perangkat Anda.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (!_includeGps)
+                          Text(
+                            'GPS tidak disertakan.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: cs.onSurfaceVariant,
+                            ),
+                          )
+                        else if (_latitude != null && _longitude != null)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Text(
@@ -358,33 +408,13 @@ class _PatientFormPageState extends State<PatientFormPage> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Text(
-                              'Koordinat belum diambil.',
+                              'Lokasi akan diminta saat Anda menekan Simpan Laporan.',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: cs.onSurfaceVariant,
                               ),
                             ),
                           ),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _fetchingLocation ? null : _fetchLocation,
-                            icon: _fetchingLocation
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.my_location),
-                            label: Text(
-                              _fetchingLocation
-                                  ? 'Mengambil lokasi...'
-                                  : (_latitude != null
-                                      ? 'Perbarui Lokasi'
-                                      : 'Ambil Lokasi Saat Ini'),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),

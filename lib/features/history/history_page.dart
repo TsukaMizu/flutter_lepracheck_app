@@ -1,11 +1,21 @@
+import 'dart:io';
+
+import 'package:cross_file/cross_file.dart';
+import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/history_entry.dart';
+import '../../data/history_query.dart';
 import '../../data/history_store.dart';
+import '../../utils/date_format_id.dart';
 
-enum _HistoryFilter { all, indikasi, tidakIndikasi }
+enum _ExportFormat { excel, pdf }
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -16,7 +26,7 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   List<HistoryEntry> _allItems = [];
-  _HistoryFilter _activeFilter = _HistoryFilter.all;
+  HistoryQuery _listQuery = const HistoryQuery();
   bool _loading = true;
 
   @override
@@ -109,13 +119,7 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  List<HistoryEntry> get _filtered => switch (_activeFilter) {
-        _HistoryFilter.indikasi =>
-          _allItems.where((e) => e.label == 'indikasi').toList(),
-        _HistoryFilter.tidakIndikasi =>
-          _allItems.where((e) => e.label == 'tidak_indikasi').toList(),
-        _HistoryFilter.all => _allItems,
-      };
+  List<HistoryEntry> get _filtered => filterHistoryEntries(_allItems, _listQuery);
 
   /// Groups items (already sorted newest-first) into ordered sections by month-year.
   List<({String header, List<HistoryEntry> items})> _groupByMonth(
@@ -133,22 +137,306 @@ class _HistoryPageState extends State<HistoryPage> {
     return [for (final k in seen) (header: k, items: map[k]!)];
   }
 
-  static String _monthYearLabel(DateTime dt) {
-    const months = [
-      'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
-      'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER',
-    ];
-    return '${months[dt.month - 1]} ${dt.year}';
+  static String _monthYearLabel(DateTime dt) => DateFormatId.monthYearLabelUpper(dt);
+
+  static String _formatDateTime(DateTime dt) => DateFormatId.dateTimeWib(dt);
+
+  static String _maskNik(String? nik) {
+    if (nik == null || nik.length < 4) return '-';
+    final suffix = nik.substring(nik.length - 4);
+    return '************$suffix';
   }
 
-  static String _formatDateTime(DateTime dt) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des',
-    ];
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
-    return '${dt.day} ${months[dt.month - 1]} ${dt.year} • $h:$m WIB';
+  String _exportFileName(String extension) {
+    final timestampMillis = DateTime.now().millisecondsSinceEpoch;
+    return 'riwayat_skrining_$timestampMillis.$extension';
+  }
+
+  Future<void> _showExportDialog() async {
+    if (_allItems.isEmpty) return;
+
+    _ExportFormat format = _ExportFormat.excel;
+    var query = HistoryQuery(resultFilter: _listQuery.resultFilter);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Export Riwayat',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<_ExportFormat>(
+                segments: const [
+                  ButtonSegment(
+                    value: _ExportFormat.excel,
+                    label: Text('Excel'),
+                    icon: Icon(Icons.table_chart_outlined),
+                  ),
+                  ButtonSegment(
+                    value: _ExportFormat.pdf,
+                    label: Text('PDF'),
+                    icon: Icon(Icons.picture_as_pdf_outlined),
+                  ),
+                ],
+                selected: {format},
+                onSelectionChanged: (value) =>
+                    setModalState(() => format = value.first),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<HistoryResultFilter>(
+                value: query.resultFilter,
+                decoration: const InputDecoration(
+                  labelText: 'Filter Hasil',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: HistoryResultFilter.semua,
+                    child: Text('Semua'),
+                  ),
+                  DropdownMenuItem(
+                    value: HistoryResultFilter.indikasi,
+                    child: Text('Indikasi'),
+                  ),
+                  DropdownMenuItem(
+                    value: HistoryResultFilter.tidakIndikasi,
+                    child: Text('Tidak Ada Indikasi'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setModalState(() => query = query.copyWith(resultFilter: value));
+                },
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<HistoryDateFilterMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: HistoryDateFilterMode.semua,
+                    label: Text('Semua'),
+                  ),
+                  ButtonSegment(
+                    value: HistoryDateFilterMode.bulan,
+                    label: Text('Bulan'),
+                  ),
+                  ButtonSegment(
+                    value: HistoryDateFilterMode.rentang,
+                    label: Text('Rentang'),
+                  ),
+                ],
+                selected: {query.dateMode},
+                onSelectionChanged: (value) {
+                  setModalState(() {
+                    query = query.copyWith(dateMode: value.first);
+                  });
+                },
+              ),
+              const SizedBox(height: 10),
+              if (query.dateMode == HistoryDateFilterMode.bulan)
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: query.month ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked == null) return;
+                    setModalState(() {
+                      query = query.copyWith(month: DateTime(picked.year, picked.month));
+                    });
+                  },
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  label: Text(
+                    query.month == null
+                        ? 'Pilih Bulan'
+                        : DateFormatId.monthYear(query.month!),
+                  ),
+                ),
+              if (query.dateMode == HistoryDateFilterMode.rentang)
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final currentRange = query.range;
+                    final picked = await showDateRangePicker(
+                      context: context,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                      initialDateRange: currentRange == null
+                          ? null
+                          : DateTimeRange(
+                              start: currentRange.start,
+                              end: currentRange.end,
+                            ),
+                    );
+                    if (picked == null) return;
+                    setModalState(() {
+                      query = query.copyWith(
+                        range: DateTimeRangeValue(
+                          start: picked.start,
+                          end: picked.end,
+                        ),
+                      );
+                    });
+                  },
+                  icon: const Icon(Icons.date_range_outlined),
+                  label: Text(
+                    query.range == null
+                        ? 'Pilih Rentang Tanggal'
+                        : '${DateFormatId.dateOnly(query.range!.start)} - ${DateFormatId.dateOnly(query.range!.end)}',
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Text('Data terpilih: ${filterHistoryEntries(_allItems, query).length}'),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => context.pop(),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () async {
+                        if (query.dateMode == HistoryDateFilterMode.bulan &&
+                            query.month == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Silakan pilih bulan terlebih dahulu.')),
+                          );
+                          return;
+                        }
+                        if (query.dateMode == HistoryDateFilterMode.rentang &&
+                            query.range == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Silakan pilih rentang tanggal terlebih dahulu.')),
+                          );
+                          return;
+                        }
+                        context.pop();
+                        await _export(format, query);
+                      },
+                      child: const Text('Export'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _export(_ExportFormat format, HistoryQuery query) async {
+    final items = filterHistoryEntries(_allItems, query);
+    if (items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tidak ada data untuk diekspor.')),
+      );
+      return;
+    }
+
+    if (format == _ExportFormat.excel) {
+      await _exportExcel(items);
+    } else {
+      await _exportPdf(items);
+    }
+  }
+
+  Future<void> _exportExcel(List<HistoryEntry> items) async {
+    final excel = Excel.createExcel();
+    final sheet = excel['Riwayat'];
+    sheet.appendRow([
+      TextCellValue('Tanggal'),
+      TextCellValue('Nama'),
+      TextCellValue('NIK'),
+      TextCellValue('Alamat'),
+      TextCellValue('Hasil'),
+      TextCellValue('Confidence'),
+      TextCellValue('Latitude'),
+      TextCellValue('Longitude'),
+    ]);
+
+    for (final e in items) {
+      sheet.appendRow([
+        TextCellValue(DateFormatId.dateTimeWib(e.createdAt)),
+        TextCellValue(e.patientName ?? '-'),
+        TextCellValue(_maskNik(e.nik)),
+        TextCellValue(e.address ?? '-'),
+        TextCellValue(e.label == 'indikasi' ? 'Indikasi' : 'Tidak Ada Indikasi'),
+        TextCellValue('${(e.confidence * 100).toStringAsFixed(1)}%'),
+        TextCellValue(e.latitude?.toStringAsFixed(6) ?? '-'),
+        TextCellValue(e.longitude?.toStringAsFixed(6) ?? '-'),
+      ]);
+    }
+
+    final bytes = excel.encode();
+    if (bytes == null) return;
+
+    final dir = await getTemporaryDirectory();
+    final path = '${dir.path}/${_exportFileName('xlsx')}';
+    final file = File(path);
+    await file.writeAsBytes(bytes, flush: true);
+
+    await Share.shareXFiles(
+      [XFile(path)],
+      text: 'Export riwayat skrining',
+    );
+  }
+
+  Future<void> _exportPdf(List<HistoryEntry> items) async {
+    final indikasiCount = items.where((e) => e.label == 'indikasi').length;
+    final tidakIndikasiCount = items.length - indikasiCount;
+    final doc = pw.Document();
+
+    doc.addPage(
+      pw.MultiPage(
+        build: (context) => [
+          pw.Text('Laporan Riwayat Skrining', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+          pw.Text('Total data: ${items.length}'),
+          pw.Text('Jumlah indikasi: $indikasiCount'),
+          pw.Text('Jumlah tidak indikasi: $tidakIndikasiCount'),
+          pw.SizedBox(height: 12),
+          pw.TableHelper.fromTextArray(
+            headers: const ['Tanggal', 'Nama', 'NIK', 'Alamat', 'Hasil', 'Confidence', 'Latitude', 'Longitude'],
+            data: items
+                .map(
+                  (e) => [
+                    DateFormatId.dateOnly(e.createdAt),
+                    e.patientName ?? '-',
+                    _maskNik(e.nik),
+                    e.address ?? '-',
+                    e.label == 'indikasi' ? 'Indikasi' : 'Tidak Ada Indikasi',
+                    '${(e.confidence * 100).toStringAsFixed(1)}%',
+                    e.latitude?.toStringAsFixed(6) ?? '-',
+                    e.longitude?.toStringAsFixed(6) ?? '-',
+                  ],
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+
+    final bytes = await doc.save();
+    final fileName = _exportFileName('pdf');
+    await Printing.sharePdf(bytes: bytes, filename: fileName);
   }
 
   @override
@@ -169,6 +457,18 @@ class _HistoryPageState extends State<HistoryPage> {
         actions: [
           if (_allItems.isNotEmpty)
             IconButton(
+              icon: const Icon(Icons.map_outlined),
+              tooltip: 'Lihat di Peta',
+              onPressed: () => context.push('/history/map'),
+            ),
+          if (_allItems.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.ios_share_outlined),
+              tooltip: 'Export',
+              onPressed: _showExportDialog,
+            ),
+          if (_allItems.isNotEmpty)
+            IconButton(
               icon: const Icon(Icons.delete_sweep_outlined),
               tooltip: 'Hapus Semua Riwayat',
               onPressed: _clearAll,
@@ -178,8 +478,10 @@ class _HistoryPageState extends State<HistoryPage> {
       body: Column(
         children: [
           _FilterChips(
-            active: _activeFilter,
-            onChanged: (f) => setState(() => _activeFilter = f),
+            active: _listQuery.resultFilter,
+            onChanged: (f) => setState(() {
+              _listQuery = _listQuery.copyWith(resultFilter: f);
+            }),
           ),
           Expanded(
             child: filtered.isEmpty
@@ -206,8 +508,8 @@ class _HistoryPageState extends State<HistoryPage> {
 // ---------------------------------------------------------------------------
 
 class _FilterChips extends StatelessWidget {
-  final _HistoryFilter active;
-  final ValueChanged<_HistoryFilter> onChanged;
+  final HistoryResultFilter active;
+  final ValueChanged<HistoryResultFilter> onChanged;
 
   const _FilterChips({required this.active, required this.onChanged});
 
@@ -215,7 +517,7 @@ class _FilterChips extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    Widget chip(_HistoryFilter filter, String label) {
+    Widget chip(HistoryResultFilter filter, String label) {
       final isActive = active == filter;
       return Padding(
         padding: const EdgeInsets.only(right: 8),
@@ -241,9 +543,9 @@ class _FilterChips extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Row(
         children: [
-          chip(_HistoryFilter.all, 'Semua'),
-          chip(_HistoryFilter.indikasi, 'Indikasi'),
-          chip(_HistoryFilter.tidakIndikasi, 'Tidak Ada Indikasi'),
+          chip(HistoryResultFilter.semua, 'Semua'),
+          chip(HistoryResultFilter.indikasi, 'Indikasi'),
+          chip(HistoryResultFilter.tidakIndikasi, 'Tidak Ada Indikasi'),
         ],
       ),
     );
