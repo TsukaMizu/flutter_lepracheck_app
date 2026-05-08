@@ -141,7 +141,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   static String _formatDateTime(DateTime dt) => DateFormatId.dateTimeWib(dt);
 
-  String _maskNik(String? nik) {
+  static String _maskNik(String? nik) {
     if (nik == null || nik.length < 4) return '-';
     final suffix = nik.substring(nik.length - 4);
     return '************$suffix';

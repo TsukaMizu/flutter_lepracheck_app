@@ -144,7 +144,7 @@ class _HistoryMapPageState extends State<HistoryMapPage> {
                     children: [
                       TileLayer(
                         urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.example.flutter_lepracheck_app',
+                        userAgentPackageName: 'flutter_lepracheck_app',
                       ),
                       MarkerLayer(
                         markers: entries
