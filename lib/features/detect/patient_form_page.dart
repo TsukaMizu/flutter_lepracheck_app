@@ -58,6 +58,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
   /// Fail-gracefully: jika permission ditolak atau timeout habis,
   /// akan muncul SnackBar informatif tanpa membuat aplikasi freeze.
   Future<bool> _fetchLocation({bool showSuccess = true}) async {
+    var success = false;
     setState(() => _fetchingLocation = true);
 
     try {
@@ -69,7 +70,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
         serviceEnabled = await loc.requestService();
         if (!serviceEnabled) {
           _showLocationError('Layanan GPS tidak aktif. Aktifkan GPS di pengaturan perangkat.');
-          return false;
+          return success;
         }
       }
 
@@ -79,7 +80,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
         permission = await loc.requestPermission();
         if (permission != PermissionStatus.granted) {
           _showLocationError('Izin lokasi ditolak. Lokasi tidak bisa diambil secara otomatis.');
-          return false;
+          return success;
         }
       }
 
@@ -87,45 +88,41 @@ class _PatientFormPageState extends State<PatientFormPage> {
         _showLocationError(
           'Izin lokasi ditolak permanen. Buka Pengaturan > Izin Aplikasi untuk mengaktifkannya.',
         );
-        return false;
+        return success;
       }
 
       // Ambil posisi dengan timeout 10 detik agar tidak freeze saat demo
       final locData = await loc.getLocation().timeout(const Duration(seconds: 10));
+      if (!mounted) return success;
 
-      if (mounted) {
-        if (locData.latitude != null && locData.longitude != null) {
-          setState(() {
-            _latitude = locData.latitude;
-            _longitude = locData.longitude;
-            _locationAccuracy = locData.accuracy;
-          });
-          if (showSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Lokasi berhasil diambil: ${locData.latitude!.toStringAsFixed(5)}, ${locData.longitude!.toStringAsFixed(5)}',
-                ),
-                backgroundColor: Colors.green,
+      if (locData.latitude != null && locData.longitude != null) {
+        setState(() {
+          _latitude = locData.latitude;
+          _longitude = locData.longitude;
+          _locationAccuracy = locData.accuracy;
+        });
+        if (showSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Lokasi berhasil diambil: ${locData.latitude!.toStringAsFixed(5)}, ${locData.longitude!.toStringAsFixed(5)}',
               ),
-            );
-          }
-          return true;
-        } else {
-          _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
-          return false;
+              backgroundColor: Colors.green,
+            ),
+          );
         }
+        success = true;
+      } else {
+        _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
       }
     } on TimeoutException {
       _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
-      return false;
     } catch (e) {
       _showLocationError('Gagal mendapat lokasi otomatis. Silakan isi alamat manual.');
-      return false;
     } finally {
       if (mounted) setState(() => _fetchingLocation = false);
     }
-    return false;
+    return success;
   }
 
   void _showLocationError(String message) {

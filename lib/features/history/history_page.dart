@@ -384,7 +384,8 @@ class _HistoryPageState extends State<HistoryPage> {
     if (bytes == null) return;
 
     final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/riwayat_skrining_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final path = '${dir.path}/riwayat_skrining_$timestamp.xlsx';
     final file = File(path);
     await file.writeAsBytes(bytes, flush: true);
 
