@@ -53,6 +53,12 @@ class _PatientFormPageState extends State<PatientFormPage> {
     super.dispose();
   }
 
+  void _clearLocationData() {
+    _latitude = null;
+    _longitude = null;
+    _locationAccuracy = null;
+  }
+
   /// Mengambil lokasi GPS saat ini dengan timeout 10 detik.
   ///
   /// Fail-gracefully: jika permission ditolak atau timeout habis,
@@ -144,9 +150,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
     setState(() => _saving = true);
 
     try {
-      _latitude = null;
-      _longitude = null;
-      _locationAccuracy = null;
+      _clearLocationData();
       if (_includeGps) {
         await _fetchLocation(showSuccess: false);
       }
@@ -364,9 +368,7 @@ class _PatientFormPageState extends State<PatientFormPage> {
                                       setState(() {
                                         _includeGps = value;
                                         if (!value) {
-                                          _latitude = null;
-                                          _longitude = null;
-                                          _locationAccuracy = null;
+                                          _clearLocationData();
                                         }
                                       });
                                     },

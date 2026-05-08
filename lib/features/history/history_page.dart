@@ -147,6 +147,11 @@ class _HistoryPageState extends State<HistoryPage> {
     return '************$suffix';
   }
 
+  String _exportFileName(String extension) {
+    final timestampMillis = DateTime.now().millisecondsSinceEpoch;
+    return 'riwayat_skrining_$timestampMillis.$extension';
+  }
+
   Future<void> _showExportDialog() async {
     if (_allItems.isEmpty) return;
 
@@ -384,8 +389,7 @@ class _HistoryPageState extends State<HistoryPage> {
     if (bytes == null) return;
 
     final dir = await getTemporaryDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final path = '${dir.path}/riwayat_skrining_$timestamp.xlsx';
+    final path = '${dir.path}/${_exportFileName('xlsx')}';
     final file = File(path);
     await file.writeAsBytes(bytes, flush: true);
 
@@ -431,7 +435,7 @@ class _HistoryPageState extends State<HistoryPage> {
     );
 
     final bytes = await doc.save();
-    final fileName = 'riwayat_skrining_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final fileName = _exportFileName('pdf');
     await Printing.sharePdf(bytes: bytes, filename: fileName);
   }
 
