@@ -147,15 +147,11 @@ class _PatientFormPageState extends State<PatientFormPage> {
     setState(() => _saving = true);
 
     try {
+      _latitude = null;
+      _longitude = null;
+      _locationAccuracy = null;
       if (_includeGps) {
-        _latitude = null;
-        _longitude = null;
-        _locationAccuracy = null;
         await _fetchLocation(showSuccess: false);
-      } else {
-        _latitude = null;
-        _longitude = null;
-        _locationAccuracy = null;
       }
 
       final entry = HistoryEntry(

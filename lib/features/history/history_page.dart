@@ -388,11 +388,9 @@ class _HistoryPageState extends State<HistoryPage> {
     final file = File(path);
     await file.writeAsBytes(bytes, flush: true);
 
-    await SharePlus.instance.share(
-      ShareParams(
-        text: 'Export riwayat skrining',
-        files: [XFile(path)],
-      ),
+    await Share.shareXFiles(
+      [XFile(path)],
+      text: 'Export riwayat skrining',
     );
   }
 

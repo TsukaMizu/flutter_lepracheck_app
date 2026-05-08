@@ -54,6 +54,8 @@ class HistoryEntry {
     if (value is int) {
       return DateTime.fromMillisecondsSinceEpoch(value);
     }
+    // Data lama tanpa createdAt dianggap paling lama agar tetap aman difilter
+    // dan tidak mengganggu urutan data terbaru.
     return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
