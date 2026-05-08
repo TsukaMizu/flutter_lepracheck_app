@@ -311,14 +311,14 @@ class _HistoryPageState extends State<HistoryPage> {
                         if (query.dateMode == HistoryDateFilterMode.bulan &&
                             query.month == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Pilih bulan terlebih dahulu.')),
+                            const SnackBar(content: Text('Silakan pilih bulan terlebih dahulu.')),
                           );
                           return;
                         }
                         if (query.dateMode == HistoryDateFilterMode.rentang &&
                             query.range == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Pilih rentang tanggal terlebih dahulu.')),
+                            const SnackBar(content: Text('Silakan pilih rentang tanggal terlebih dahulu.')),
                           );
                           return;
                         }
@@ -341,7 +341,7 @@ class _HistoryPageState extends State<HistoryPage> {
     final items = filterHistoryEntries(_allItems, query);
     if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tidak ada data untuk diexport.')),
+        const SnackBar(content: Text('Tidak ada data untuk diekspor.')),
       );
       return;
     }

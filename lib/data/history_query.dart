@@ -47,7 +47,7 @@ List<HistoryEntry> filterHistoryEntries(List<HistoryEntry> items, HistoryQuery q
     final resultOk = switch (query.resultFilter) {
       HistoryResultFilter.semua => true,
       HistoryResultFilter.indikasi => entry.label == 'indikasi',
-      HistoryResultFilter.tidakIndikasi => entry.label != 'indikasi',
+      HistoryResultFilter.tidakIndikasi => entry.label == 'tidak_indikasi',
     };
     if (!resultOk) return false;
 
