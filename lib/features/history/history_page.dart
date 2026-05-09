@@ -357,7 +357,9 @@ class _HistoryPageState extends State<HistoryPage> {
       } else {
         await _exportPdf(items);
       }
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('Gagal export riwayat: $e');
+      debugPrint('$st');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
