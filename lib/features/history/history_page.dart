@@ -346,15 +346,24 @@ class _HistoryPageState extends State<HistoryPage> {
     final items = filterHistoryEntries(_allItems, query);
     if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tidak ada data untuk diekspor.')),
+        const SnackBar(content: Text('Tidak ada data untuk diekspor')),
       );
       return;
     }
 
-    if (format == _ExportFormat.excel) {
-      await _exportExcel(items);
-    } else {
-      await _exportPdf(items);
+    try {
+      if (format == _ExportFormat.excel) {
+        await _exportExcel(items);
+      } else {
+        await _exportPdf(items);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Terjadi kesalahan saat membuat file export. Silakan coba lagi.'),
+        ),
+      );
     }
   }
 
@@ -386,7 +395,9 @@ class _HistoryPageState extends State<HistoryPage> {
     }
 
     final bytes = excel.encode();
-    if (bytes == null) return;
+    if (bytes == null) {
+      throw Exception('Gagal membuat file excel');
+    }
 
     final dir = await getTemporaryDirectory();
     final path = '${dir.path}/${_exportFileName('xlsx')}';
