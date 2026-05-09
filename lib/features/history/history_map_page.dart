@@ -60,6 +60,7 @@ class _HistoryMapPageState extends State<HistoryMapPage> {
               const SizedBox(height: 8),
               Text('Tanggal: ${DateFormatId.dateTimeWib(entry.createdAt)}'),
               Text('Nama: ${entry.patientName?.isNotEmpty == true ? entry.patientName : '-'}'),
+              Text('Confidence: ${(entry.confidence * 100).toStringAsFixed(1)}%'),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () {
@@ -98,30 +99,117 @@ class _HistoryMapPageState extends State<HistoryMapPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-            child: Wrap(
-              spacing: 8,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ChoiceChip(
-                  selected: _query.resultFilter == HistoryResultFilter.semua,
-                  label: const Text('Semua'),
-                  onSelected: (_) => setState(() {
-                    _query = _query.copyWith(resultFilter: HistoryResultFilter.semua);
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      selected: _query.resultFilter == HistoryResultFilter.semua,
+                      label: const Text('Semua'),
+                      onSelected: (_) => setState(() {
+                        _query = _query.copyWith(resultFilter: HistoryResultFilter.semua);
+                      }),
+                    ),
+                    ChoiceChip(
+                      selected: _query.resultFilter == HistoryResultFilter.indikasi,
+                      label: const Text('Indikasi'),
+                      onSelected: (_) => setState(() {
+                        _query = _query.copyWith(resultFilter: HistoryResultFilter.indikasi);
+                      }),
+                    ),
+                    ChoiceChip(
+                      selected: _query.resultFilter == HistoryResultFilter.tidakIndikasi,
+                      label: const Text('Tidak Ada Indikasi'),
+                      onSelected: (_) => setState(() {
+                        _query = _query.copyWith(resultFilter: HistoryResultFilter.tidakIndikasi);
+                      }),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<HistoryDateFilterMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: HistoryDateFilterMode.semua,
+                      label: Text('Semua'),
+                    ),
+                    ButtonSegment(
+                      value: HistoryDateFilterMode.bulan,
+                      label: Text('Bulan'),
+                    ),
+                    ButtonSegment(
+                      value: HistoryDateFilterMode.rentang,
+                      label: Text('Rentang'),
+                    ),
+                  ],
+                  selected: {_query.dateMode},
+                  onSelectionChanged: (value) => setState(() {
+                    _query = _query.copyWith(dateMode: value.first);
                   }),
                 ),
-                ChoiceChip(
-                  selected: _query.resultFilter == HistoryResultFilter.indikasi,
-                  label: const Text('Indikasi'),
-                  onSelected: (_) => setState(() {
-                    _query = _query.copyWith(resultFilter: HistoryResultFilter.indikasi);
-                  }),
-                ),
-                ChoiceChip(
-                  selected: _query.resultFilter == HistoryResultFilter.tidakIndikasi,
-                  label: const Text('Tidak Ada Indikasi'),
-                  onSelected: (_) => setState(() {
-                    _query = _query.copyWith(resultFilter: HistoryResultFilter.tidakIndikasi);
-                  }),
-                ),
+                if (_query.dateMode == HistoryDateFilterMode.bulan) ...[
+                  const SizedBox(height: 6),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _query.month ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked == null) return;
+                      setState(() {
+                        _query = _query.copyWith(
+                          month: DateTime(picked.year, picked.month),
+                        );
+                      });
+                    },
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    label: Text(
+                      _query.month == null
+                          ? 'Pilih Bulan'
+                          : DateFormatId.monthYear(_query.month!),
+                    ),
+                  ),
+                ],
+                if (_query.dateMode == HistoryDateFilterMode.rentang) ...[
+                  const SizedBox(height: 6),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final currentRange = _query.range;
+                      final picked = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                        initialDateRange: currentRange == null
+                            ? null
+                            : DateTimeRange(
+                                start: currentRange.start,
+                                end: currentRange.end,
+                              ),
+                      );
+                      if (picked == null) return;
+                      setState(() {
+                        _query = _query.copyWith(
+                          range: DateTimeRangeValue(
+                            start: picked.start,
+                            end: picked.end,
+                          ),
+                        );
+                      });
+                    },
+                    icon: const Icon(Icons.date_range_outlined),
+                    label: Text(
+                      _query.range == null
+                          ? 'Pilih Rentang Tanggal'
+                          : '${DateFormatId.dateOnly(_query.range!.start)} - ${DateFormatId.dateOnly(_query.range!.end)}',
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 4),
+                Text('Total marker tampil: ${entries.length}'),
               ],
             ),
           ),
