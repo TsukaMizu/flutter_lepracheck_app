@@ -14,7 +14,6 @@ import '../../data/history_query.dart';
 import '../../data/history_store.dart';
 import 'export/history_pdf_exporter.dart';
 import '../../utils/date_format_id.dart';
-import 'export/history_pdf_exporter.dart';
 
 enum _ExportFormat { excel, pdf }
 
