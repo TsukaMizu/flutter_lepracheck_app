@@ -17,6 +17,10 @@ class HistoryPdfExporter {
     required HistoryQuery query,
     DateTime? exportedAt,
   }) async {
+    if (items.isEmpty) {
+      throw ArgumentError('Data riwayat kosong, PDF tidak dapat dibuat.');
+    }
+
     final doc = pw.Document();
     final time = exportedAt ?? DateTime.now();
     final logo = await _loadLogo();
@@ -65,6 +69,7 @@ class HistoryPdfExporter {
       return '${DateFormatId.dateOnly(query.range!.start)} - ${DateFormatId.dateOnly(query.range!.end)}';
     }
     if (items.isEmpty) return '-';
+
     var oldest = items.first.createdAt;
     var latest = items.first.createdAt;
     for (final entry in items) {

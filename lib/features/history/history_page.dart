@@ -14,6 +14,7 @@ import '../../data/history_query.dart';
 import '../../data/history_store.dart';
 import 'export/history_pdf_exporter.dart';
 import '../../utils/date_format_id.dart';
+import 'export/history_pdf_exporter.dart';
 
 enum _ExportFormat { excel, pdf }
 
@@ -416,6 +417,7 @@ class _HistoryPageState extends State<HistoryPage> {
     final bytes = await HistoryPdfExporter.build(
       items: items,
       query: query,
+      exportedAt: DateTime.now(),
     );
     final fileName = _exportFileName('pdf');
     await Printing.sharePdf(bytes: bytes, filename: fileName);
