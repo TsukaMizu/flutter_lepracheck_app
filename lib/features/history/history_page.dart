@@ -5,7 +5,6 @@ import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/history_entry.dart';
 import '../../data/history_query.dart';
 import '../../data/history_store.dart';
+import 'export/history_pdf_exporter.dart';
 import '../../utils/date_format_id.dart';
 
 enum _ExportFormat { excel, pdf }
@@ -355,7 +355,7 @@ class _HistoryPageState extends State<HistoryPage> {
       if (format == _ExportFormat.excel) {
         await _exportExcel(items);
       } else {
-        await _exportPdf(items);
+        await _exportPdf(items, query);
       }
     } catch (e, st) {
       debugPrint('Gagal export riwayat: $e');
@@ -412,42 +412,11 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Future<void> _exportPdf(List<HistoryEntry> items) async {
-    final indikasiCount = items.where((e) => e.label == 'indikasi').length;
-    final tidakIndikasiCount = items.length - indikasiCount;
-    final doc = pw.Document();
-
-    doc.addPage(
-      pw.MultiPage(
-        build: (context) => [
-          pw.Text('Laporan Riwayat Skrining', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 8),
-          pw.Text('Total data: ${items.length}'),
-          pw.Text('Jumlah indikasi: $indikasiCount'),
-          pw.Text('Jumlah tidak indikasi: $tidakIndikasiCount'),
-          pw.SizedBox(height: 12),
-          pw.TableHelper.fromTextArray(
-            headers: const ['Tanggal', 'Nama', 'NIK', 'Alamat', 'Hasil', 'Confidence', 'Latitude', 'Longitude'],
-            data: items
-                .map(
-                  (e) => [
-                    DateFormatId.dateOnly(e.createdAt),
-                    e.patientName ?? '-',
-                    _maskNik(e.nik),
-                    e.address ?? '-',
-                    e.label == 'indikasi' ? 'Indikasi' : 'Tidak Ada Indikasi',
-                    '${(e.confidence * 100).toStringAsFixed(1)}%',
-                    e.latitude?.toStringAsFixed(6) ?? '-',
-                    e.longitude?.toStringAsFixed(6) ?? '-',
-                  ],
-                )
-                .toList(),
-          ),
-        ],
-      ),
+  Future<void> _exportPdf(List<HistoryEntry> items, HistoryQuery query) async {
+    final bytes = await HistoryPdfExporter.build(
+      items: items,
+      query: query,
     );
-
-    final bytes = await doc.save();
     final fileName = _exportFileName('pdf');
     await Printing.sharePdf(bytes: bytes, filename: fileName);
   }
